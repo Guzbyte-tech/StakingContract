@@ -187,11 +187,11 @@ contract StakeEther {
     ) public view returns (bool) {
         userStake memory usrStk = stakesByUser[_address][_planID][_index];
         require(usrStk.amountStaked > 0, "No active stake on this plan.");
-        // require(block.timestamp >= usrStk.endTime, "Stake is still ongoing cannot withdraw from stake...");
-        require(
-            unlockTime >= usrStk.endTime,
-            "Stake is still ongoing cannot withdraw from stake..."
-        ); //For Testing
+        require(block.timestamp >= usrStk.endTime, "Stake is still ongoing cannot withdraw from stake...");
+        // require(
+        //     unlockTime >= usrStk.endTime,
+        //     "Stake is still ongoing cannot withdraw from stake..."
+        // ); //For Testing
         require(!usrStk.isEnded, "Stake has already ended.");
         require(!usrStk.isWithdrawn, "Stake Reward already sent to balance.");
         return true;
