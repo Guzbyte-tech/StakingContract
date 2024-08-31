@@ -13,7 +13,7 @@ contract StakeGTK {
     constructor(address _gtkTokenAddress) {
         owner = msg.sender;
         daysInYear = 365;
-        unlockTime = block.timestamp + 10 days;
+        unlockTime = block.timestamp + 10 days; //for testing
         gtkToken = IERC20(_gtkTokenAddress); // GTK token address passed during contract deployment
     }
 
@@ -107,6 +107,8 @@ contract StakeGTK {
         require(msg.sender != address(0), "Sender address is a zero address");
         require(_amount > 0, "Amount to stake must be greater than zero.");
         require(plans[_planID].planId == _planID, "Invalid plan ID");
+        uint256 _userTokenBalance = gtkToken.balanceOf(msg.sender);
+        require(_userTokenBalance > _amount, "Insufficient Funds.");
 
         // Transfer the staked tokens from the user to the contract
         require(
@@ -161,10 +163,6 @@ contract StakeGTK {
         totalAmountRewardedBalances[msg.sender] += interest;
     }
 
-    function showReward() public view returns (uint256) {
-        return rewardBalances[msg.sender];
-    }
-
     function withdrawReward(uint256 _amount) external {
         require(msg.sender != address(0), "Address zero detected");
         require(
@@ -184,6 +182,14 @@ contract StakeGTK {
             gtkToken.transfer(msg.sender, _amount),
             "Token withdrawal failed"
         );
+    }
+
+    function showAvailableRewardForWithdraw() public view returns (uint256) {
+        return rewardBalances[msg.sender];
+    }
+
+    function getTotalAmountStakedByUser() external view returns (uint256) {
+        return totalAmountStakedBalances[msg.sender];
     }
 
     // function withdraw(uint8 _planID, uint256 _index) external {
@@ -217,7 +223,8 @@ contract StakeGTK {
     ) public view returns (bool) {
         userStake memory usrStk = stakesByUser[_address][_planID][_index];
         require(usrStk.amountStaked > 0, "No active stake on this plan.");
-        require(block.timestamp >= usrStk.endTime, "Stake is still ongoing.");
+        // require(block.timestamp >= usrStk.endTime, "Stake is still ongoing.");
+        require(unlockTime >= usrStk.endTime, "Stake is still ongoing."); //Testing mode adjusting time here
         require(!usrStk.isEnded, "Stake has already ended.");
         require(!usrStk.isWithdrawn, "Stake reward already withdrawn.");
         return true;
@@ -230,10 +237,10 @@ contract StakeGTK {
     ) public view returns (uint256) {
         uint256 timeInYears = (numberOfDays * 1e18) / daysInYear; // Time in years scaled by 1e18 for precision
         uint256 interest = (principal * rate * timeInYears) / 100e18; // Calculate interest with scaling
-        return interest;
+        return principal + interest;
     }
 
-    function getBalance() public view returns (uint) {
-        return contractBalance;
-    }
+    // function getBalance() public view returns (uint) {
+    //     return contractBalance;
+    // }
 }
