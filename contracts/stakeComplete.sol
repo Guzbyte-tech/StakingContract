@@ -37,6 +37,9 @@ contract StakeEther {
     mapping(address => uint256) totalAmountStakedBalances;
     mapping(address => uint256) rewardBalances;
     mapping(address => uint256) totalAmountRewardedBalances;
+    //Map a plan to user
+    // mapping (address => userStake[]) stakesByAddess;
+
     mapping(address => mapping(uint8 => userStake[])) stakesByUser;
 
     stakingPlan[] allPlans;
@@ -57,15 +60,13 @@ contract StakeEther {
         uint8 _planId
     ) external onlyOwner {
         //check if planid already exists.
+        bytes memory nameInByte = bytes(_nameOfPlan);
         require(!plans[_planId].exists, "Plan ID already Exists");
-        for (uint256 i = 0; i < allPlans.length; i++) {
-            require(
-                keccak256(abi.encodePacked(allPlans[i].planName)) !=
-                    keccak256(abi.encodePacked(_nameOfPlan)),
-                "Plan Name already exists."
-            );
-        }
-
+        require(
+            keccak256(abi.encodePacked(plans[_planId].planName)) ==
+                keccak256(abi.encodePacked(nameInByte)),
+            "Plan Name already Exists."
+        );
         stakingPlan memory sp;
         sp.planName = _nameOfPlan;
         sp.interestRate = _interestRate;
@@ -96,9 +97,7 @@ contract StakeEther {
         require(msg.sender != address(0), "Sender address is a zero address");
         require(msg.value > 0, "Amount to deposit must be greater than zero.");
         require(plans[_planID].planId == _planID, "Invalid plan ID");
-
         totalAmountStakedBalances[msg.sender] += msg.value;
-        contractBalance += msg.value;
         //Get the plan User wants to stake in
         stakingPlan memory selectedPlan = plans[_planID];
         uint256 interest = calculateInterest(
@@ -158,25 +157,17 @@ contract StakeEther {
         uint256 bal = rewardBalances[msg.sender];
         uint newBal = bal - _amount;
         rewardBalances[msg.sender] = newBal;
-        contractBalance -= _amount;
         (bool success, ) = msg.sender.call{value: _amount}("");
         require(success, "Withdrawal Failed!");
     }
 
-    // function withdraw(uint8 _planID, uint256 _index) external {
+    // function withdraw (uint8 _planID, uint256 _index) external {
     //     require(msg.sender != address(0), "Address zero detected.");
     //     require(canWithdraw(_planID, msg.sender, _index), "Cannot withdraw funds.");
-
-    //     userStake storage usrStk = stakesByUser[msg.sender][_planID][_index];
+    //     userStake memory usrStk = stakesByUser[msg.sender][_planID][_index];
     //     uint256 interest = usrStk.estimatedInterest;
-
-    //     usrStk.isEnded = true;
-    //     usrStk.isWithdrawn = true;
-    //     totalAmountStakedBalances[msg.sender] -= usrStk.amountStaked;
-
-    //     contractBalance -= (usrStk.amountStaked + interest);
-    //     (bool success, ) = msg.sender.call{value: usrStk.amountStaked + interest}("");
-    //     require(success, "Withdrawal Failed.");
+    //     (bool success,) = msg.sender.call{value:interest}("");
+    //     require(success, "Withdrawal Failed!.");
     // }
 
     //check if a user can withdraw.
@@ -216,13 +207,4 @@ contract StakeEther {
     function getBalance() public view returns (uint) {
         return contractBalance;
     }
-
-    // function userExistInPlan(address _address, uint8 _planID) internal view returns (bool) {
-    //     for (uint i = 0; i < stakesByAddess[_address].length; i++){
-    //         if (stakesByAddess[_address][i].planId == _planID) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
 }
