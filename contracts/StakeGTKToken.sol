@@ -13,7 +13,7 @@ contract StakeGTK {
     constructor(address _gtkTokenAddress) {
         owner = msg.sender;
         daysInYear = 365;
-        unlockTime = block.timestamp + 10 days; //for testing
+        unlockTime = block.timestamp + 10 days; //for testing use to jump date to 10 days adjust to taste.
         gtkToken = IERC20(_gtkTokenAddress); // GTK token address passed during contract deployment
     }
 
@@ -223,8 +223,8 @@ contract StakeGTK {
     ) public view returns (bool) {
         userStake memory usrStk = stakesByUser[_address][_planID][_index];
         require(usrStk.amountStaked > 0, "No active stake on this plan.");
-        // require(block.timestamp >= usrStk.endTime, "Stake is still ongoing.");
-        require(unlockTime >= usrStk.endTime, "Stake is still ongoing."); //Testing mode adjusting time here
+        require(block.timestamp >= usrStk.endTime, "Stake is still ongoing."); //This line checks the duration against the curren time
+        // require(unlockTime >= usrStk.endTime, "Stake is still ongoing."); //Testing mode adjusting time here for time travel 
         require(!usrStk.isEnded, "Stake has already ended.");
         require(!usrStk.isWithdrawn, "Stake reward already withdrawn.");
         return true;
