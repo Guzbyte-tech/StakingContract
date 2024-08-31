@@ -11,7 +11,7 @@ contract StakeEther {
         contractBalance = msg.value;
         owner = msg.sender;
         daysInYear = 365;
-        unlockTime = block.timestamp + 10 days;
+        unlockTime = block.timestamp + 10 days; //For Testing. Trying to Time Travel :)
     }
 
     struct stakingPlan {
@@ -191,7 +191,7 @@ contract StakeEther {
         require(
             unlockTime >= usrStk.endTime,
             "Stake is still ongoing cannot withdraw from stake..."
-        );
+        ); //For Testing
         require(!usrStk.isEnded, "Stake has already ended.");
         require(!usrStk.isWithdrawn, "Stake Reward already sent to balance.");
         return true;
@@ -211,18 +211,4 @@ contract StakeEther {
         uint256 interest = (principal * rate * timeInYears) / 100e18; // Calculate interest with scaling
         return principal + interest;
     }
-
-    // View the balance of the contract
-    function getBalance() public view returns (uint) {
-        return contractBalance;
-    }
-
-    // function userExistInPlan(address _address, uint8 _planID) internal view returns (bool) {
-    //     for (uint i = 0; i < stakesByAddess[_address].length; i++){
-    //         if (stakesByAddess[_address][i].planId == _planID) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
 }

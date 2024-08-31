@@ -1,15 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-// ERC-20 Interface to interact with the GTK token
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-}
+import "../interfaces/IERC20.sol";
 
 contract StakeGTK {
     IERC20 public gtkToken; // Reference to the GTK token
@@ -22,7 +14,7 @@ contract StakeGTK {
         owner = msg.sender;
         daysInYear = 365;
         unlockTime = block.timestamp + 10 days;
-        gtkToken = IERC20(_gtkTokenAddress);  // GTK token address passed during contract deployment
+        gtkToken = IERC20(_gtkTokenAddress); // GTK token address passed during contract deployment
     }
 
     struct stakingPlan {
@@ -73,6 +65,13 @@ contract StakeGTK {
         uint8 _planId
     ) external onlyOwner {
         require(!plans[_planId].exists, "Plan ID already Exists");
+        for (uint256 i = 0; i < allPlans.length; i++) {
+            require(
+                keccak256(abi.encodePacked(allPlans[i].planName)) !=
+                    keccak256(abi.encodePacked(_nameOfPlan)),
+                "Plan Name already exists."
+            );
+        }
 
         stakingPlan memory sp = stakingPlan({
             planName: _nameOfPlan,
@@ -110,7 +109,10 @@ contract StakeGTK {
         require(plans[_planID].planId == _planID, "Invalid plan ID");
 
         // Transfer the staked tokens from the user to the contract
-        require(gtkToken.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        require(
+            gtkToken.transferFrom(msg.sender, address(this), _amount),
+            "Token transfer failed"
+        );
 
         totalAmountStakedBalances[msg.sender] += _amount;
 
@@ -125,7 +127,8 @@ contract StakeGTK {
         stakesByUser[msg.sender][_planID].push(
             userStake({
                 planId: _planID,
-                endTime: block.timestamp + (selectedPlan.duration * 24 * 60 * 60),
+                endTime: block.timestamp +
+                    (selectedPlan.duration * 24 * 60 * 60),
                 created_at: block.timestamp,
                 estimatedInterest: interest,
                 amountStaked: _amount,
@@ -133,16 +136,21 @@ contract StakeGTK {
                 isWithdrawn: false
             })
         );
-
-        contractBalance += _amount;
+        contractBalance += _amount; //Increase Contract Balance.
         emit depositSuccessful(_amount, msg.sender, selectedPlan.planName);
     }
 
     // Reward mechanism for users who can withdraw
     function rewardMechanism(uint8 _planID, uint256 _index) external {
         require(msg.sender != address(0), "Address zero Detected");
-        require(totalAmountStakedBalances[msg.sender] > 0, "Not a user of the system");
-        require(canWithdraw(_planID, msg.sender, _index), "Cannot perform reward.");
+        require(
+            totalAmountStakedBalances[msg.sender] > 0,
+            "Not a user of the system"
+        );
+        require(
+            canWithdraw(_planID, msg.sender, _index),
+            "Cannot perform reward."
+        );
 
         userStake storage usrStk = stakesByUser[msg.sender][_planID][_index];
         usrStk.isEnded = true;
@@ -159,35 +167,54 @@ contract StakeGTK {
 
     function withdrawReward(uint256 _amount) external {
         require(msg.sender != address(0), "Address zero detected");
-        require(rewardBalances[msg.sender] >= _amount, "Insufficient reward balance");
-        require(gtkToken.balanceOf(address(this)) >= _amount, "Insufficient contract balance");
+        require(
+            rewardBalances[msg.sender] >= _amount,
+            "Insufficient reward balance"
+        );
+        require(
+            gtkToken.balanceOf(address(this)) >= _amount,
+            "Insufficient contract balance"
+        );
 
         rewardBalances[msg.sender] -= _amount;
         contractBalance -= _amount;
 
         // Transfer tokens to the user
-        require(gtkToken.transfer(msg.sender, _amount), "Token withdrawal failed");
+        require(
+            gtkToken.transfer(msg.sender, _amount),
+            "Token withdrawal failed"
+        );
     }
 
-    function withdraw(uint8 _planID, uint256 _index) external {
-        require(msg.sender != address(0), "Address zero detected.");
-        require(canWithdraw(_planID, msg.sender, _index), "Cannot withdraw funds.");
+    // function withdraw(uint8 _planID, uint256 _index) external {
+    //     require(msg.sender != address(0), "Address zero detected.");
+    //     require(
+    //         canWithdraw(_planID, msg.sender, _index),
+    //         "Cannot withdraw funds."
+    //     );
 
-        userStake storage usrStk = stakesByUser[msg.sender][_planID][_index];
-        uint256 interest = usrStk.estimatedInterest;
-        uint256 totalWithdrawal = usrStk.amountStaked + interest;
+    //     userStake storage usrStk = stakesByUser[msg.sender][_planID][_index];
+    //     uint256 interest = usrStk.estimatedInterest;
+    //     uint256 totalWithdrawal = usrStk.amountStaked + interest;
 
-        usrStk.isEnded = true;
-        usrStk.isWithdrawn = true;
-        totalAmountStakedBalances[msg.sender] -= usrStk.amountStaked;
+    //     usrStk.isEnded = true;
+    //     usrStk.isWithdrawn = true;
+    //     totalAmountStakedBalances[msg.sender] -= usrStk.amountStaked;
 
-        contractBalance -= totalWithdrawal;
+    //     contractBalance -= totalWithdrawal;
 
-        // Transfer tokens (staked + interest) to the user
-        require(gtkToken.transfer(msg.sender, totalWithdrawal), "Withdrawal failed");
-    }
+    //     // Transfer tokens (staked + interest) to the user
+    //     require(
+    //         gtkToken.transfer(msg.sender, totalWithdrawal),
+    //         "Withdrawal failed"
+    //     );
+    // }
 
-    function canWithdraw(uint8 _planID, address _address, uint256 _index) public view returns (bool) {
+    function canWithdraw(
+        uint8 _planID,
+        address _address,
+        uint256 _index
+    ) public view returns (bool) {
         userStake memory usrStk = stakesByUser[_address][_planID][_index];
         require(usrStk.amountStaked > 0, "No active stake on this plan.");
         require(block.timestamp >= usrStk.endTime, "Stake is still ongoing.");
@@ -196,7 +223,11 @@ contract StakeGTK {
         return true;
     }
 
-    function calculateInterest(uint256 principal, uint256 rate, uint numberOfDays) public view returns (uint256) {
+    function calculateInterest(
+        uint256 principal,
+        uint256 rate,
+        uint numberOfDays
+    ) public view returns (uint256) {
         uint256 timeInYears = (numberOfDays * 1e18) / daysInYear; // Time in years scaled by 1e18 for precision
         uint256 interest = (principal * rate * timeInYears) / 100e18; // Calculate interest with scaling
         return interest;
