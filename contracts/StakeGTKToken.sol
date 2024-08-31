@@ -9,12 +9,15 @@ contract StakeGTK {
     uint256 daysInYear;
     uint256 public unlockTime;
     uint256 public contractBalance;
+    address public tokenAddress;
 
     constructor(address _gtkTokenAddress) {
         owner = msg.sender;
         daysInYear = 365;
         unlockTime = block.timestamp + 10 days; //for testing use to jump date to 10 days adjust to taste.
         gtkToken = IERC20(_gtkTokenAddress); // GTK token address passed during contract deployment
+        contractBalance = IERC20(_gtkTokenAddress).balanceOf(owner);
+        tokenAddress = _gtkTokenAddress;
     }
 
     struct stakingPlan {
@@ -129,8 +132,7 @@ contract StakeGTK {
         stakesByUser[msg.sender][_planID].push(
             userStake({
                 planId: _planID,
-                endTime: block.timestamp +
-                    (selectedPlan.duration * 24 * 60 * 60),
+                endTime: block.timestamp + (selectedPlan.duration * 24 * 60 * 60),
                 created_at: block.timestamp,
                 estimatedInterest: interest,
                 amountStaked: _amount,
@@ -224,7 +226,7 @@ contract StakeGTK {
         userStake memory usrStk = stakesByUser[_address][_planID][_index];
         require(usrStk.amountStaked > 0, "No active stake on this plan.");
         require(block.timestamp >= usrStk.endTime, "Stake is still ongoing."); //This line checks the duration against the curren time
-        // require(unlockTime >= usrStk.endTime, "Stake is still ongoing."); //Testing mode adjusting time here for time travel 
+        // require(unlockTime >= usrStk.endTime, "Stake is still ongoing."); //Testing mode adjusting time here for time travel
         require(!usrStk.isEnded, "Stake has already ended.");
         require(!usrStk.isWithdrawn, "Stake reward already withdrawn.");
         return true;
@@ -238,6 +240,10 @@ contract StakeGTK {
         uint256 timeInYears = (numberOfDays * 1e18) / daysInYear; // Time in years scaled by 1e18 for precision
         uint256 interest = (principal * rate * timeInYears) / 100e18; // Calculate interest with scaling
         return principal + interest;
+    }
+
+    function fundContract(uint256 _amount) private onlyOwner {
+        gtkToken.transferFrom(tokenAddress, owner, _amount);
     }
 
     // function getBalance() public view returns (uint) {
