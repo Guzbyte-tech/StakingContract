@@ -132,7 +132,8 @@ contract StakeGTK {
         stakesByUser[msg.sender][_planID].push(
             userStake({
                 planId: _planID,
-                endTime: block.timestamp + (selectedPlan.duration * 24 * 60 * 60),
+                endTime: block.timestamp +
+                    (selectedPlan.duration * 24 * 60 * 60),
                 created_at: block.timestamp,
                 estimatedInterest: interest,
                 amountStaked: _amount,
@@ -244,6 +245,13 @@ contract StakeGTK {
 
     function fundContract(uint256 _amount) private onlyOwner {
         gtkToken.transferFrom(tokenAddress, owner, _amount);
+    }
+
+    function getUserStackByPlanId(uint _planId) external returns (userStake) {
+        
+        require(msg.sender != address(0), "Sender address is a zero address");
+        userStake memory usrStk = stakesByUser[msg.sender][_planID];
+        return usrStk;
     }
 
     // function getBalance() public view returns (uint) {

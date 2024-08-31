@@ -187,7 +187,10 @@ contract StakeEther {
     ) public view returns (bool) {
         userStake memory usrStk = stakesByUser[_address][_planID][_index];
         require(usrStk.amountStaked > 0, "No active stake on this plan.");
-        require(block.timestamp >= usrStk.endTime, "Stake is still ongoing cannot withdraw from stake...");
+        require(
+            block.timestamp >= usrStk.endTime,
+            "Stake is still ongoing cannot withdraw from stake..."
+        );
         // require(
         //     unlockTime >= usrStk.endTime,
         //     "Stake is still ongoing cannot withdraw from stake..."
@@ -210,5 +213,11 @@ contract StakeEther {
         uint256 timeInYears = (numberOfDays * 1e18) / daysInYear; // Time in years scaled by 1e18 for precision
         uint256 interest = (principal * rate * timeInYears) / 100e18; // Calculate interest with scaling
         return principal + interest;
+    }
+
+    function getUserStackByPlanId(uint _planId) external returns (userStake) {
+        require(msg.sender != address(0), "Sender address is a zero address");
+        userStake memory usrStk = stakesByUser[msg.sender][_planID];
+        return usrStk;
     }
 }
